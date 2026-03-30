@@ -32,7 +32,6 @@ import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.lsposed.hiddenapibypass.HiddenApiBypass
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.concurrent.LinkedBlockingQueue
@@ -70,7 +69,6 @@ class ATTManager(private val adapter: BluetoothAdapter, private val device: Blue
 
     @SuppressLint("MissingPermission")
     fun connect() {
-        HiddenApiBypass.addHiddenApiExemptions("Landroid/bluetooth/BluetoothSocket;")
         val uuid = ParcelUuid.fromString("00000000-0000-0000-0000-000000000000")
 
         socket = createBluetoothSocket(adapter, device, uuid)
@@ -221,7 +219,12 @@ class ATTManager(private val adapter: BluetoothAdapter, private val device: Blue
             try {
                 Log.d("ATTManager", "Trying constructor signature #${index + 1}")
                 attemptedConstructors++
-                return HiddenApiBypass.newInstance(BluetoothSocket::class.java, *params) as BluetoothSocket
+
+                val paramTypes = params.map { it::class.javaPrimitiveType ?: it::class.java }.toTypedArray()
+                val constructor = BluetoothSocket::class.java.getDeclaredConstructor(*paramTypes)
+                constructor.isAccessible = true
+                return constructor.newInstance(*params) as BluetoothSocket
+
             } catch (e: Exception) {
                 Log.e("ATTManager", "Constructor signature #${index + 1} failed: ${e.message}")
                 lastException = e

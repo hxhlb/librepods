@@ -123,11 +123,11 @@ import me.kavishdevar.librepods.utils.SystemApisUtils.METADATA_UNTETHERED_RIGHT_
 import me.kavishdevar.librepods.utils.SystemApisUtils.METADATA_UNTETHERED_RIGHT_LOW_BATTERY_THRESHOLD
 import me.kavishdevar.librepods.widgets.BatteryWidget
 import me.kavishdevar.librepods.widgets.NoiseControlWidget
-import org.lsposed.hiddenapibypass.HiddenApiBypass
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.jvm.java
 
 private const val TAG = "AirPodsService"
 
@@ -234,6 +234,12 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     lateinit var bleManager: BLEManager
 
     private lateinit var socket: BluetoothSocket
+
+    companion object {
+        init {
+            System.loadLibrary("socket_private_constructor")
+        }
+    }
 
     private val bleStatusListener = object : BLEManager.AirPodsStatusListener {
         @SuppressLint("NewApi")
@@ -355,9 +361,21 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         }
     }
 
+    fun isBluetoothSocketExempted(): Boolean {
+        return try {
+            BluetoothSocket::class.java.declaredConstructors // will throw if still blocked
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+
     @SuppressLint("MissingPermission", "UnspecifiedRegisterReceiverFlag")
     override fun onCreate() {
         super.onCreate()
+        Log.i(TAG, "lib exempt worked: ${isBluetoothSocketExempted()}")
 
         sharedPreferencesLogs = getSharedPreferences("packet_logs", MODE_PRIVATE)
 
@@ -2382,7 +2400,12 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             try {
                 Log.d(TAG, "Trying constructor signature #${index + 1}")
                 attemptedConstructors++
-                return HiddenApiBypass.newInstance(BluetoothSocket::class.java, *params) as BluetoothSocket
+
+                val paramTypes = params.map { it::class.javaPrimitiveType ?: it::class.java }.toTypedArray()
+                val constructor = BluetoothSocket::class.java.getDeclaredConstructor(*paramTypes)
+                constructor.isAccessible = true
+                return constructor.newInstance(*params) as BluetoothSocket
+
             } catch (e: Exception) {
                 Log.e(TAG, "Constructor signature #${index + 1} failed: ${e.message}")
                 lastException = e
@@ -2398,7 +2421,6 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     @SuppressLint("MissingPermission", "UnspecifiedRegisterReceiverFlag")
     fun connectToSocket(adapter: BluetoothAdapter, device: BluetoothDevice, manual: Boolean = false) {
         Log.d(TAG, "<LogCollector:Start> Connecting to socket")
-        HiddenApiBypass.addHiddenApiExemptions("Landroid/bluetooth/BluetoothSocket;")
         val uuid: ParcelUuid = ParcelUuid.fromString("74ec2172-0bad-4d01-8f77-997b2be0722a")
         if (!isConnectedLocally) {
             socket = try {
@@ -2818,6 +2840,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         }
         if (device != null) {
             CoroutineScope(Dispatchers.IO).launch {
+                Log.d(TAG, "connecting to $macAddress")
                 connectToSocket(bluetoothAdapter, device!!, manual = true)
             }
         }

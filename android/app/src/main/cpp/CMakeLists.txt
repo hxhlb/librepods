@@ -14,6 +14,10 @@ add_library(l2c_fcr_hook SHARED
         xz/xz_dec_bcj.c
 )
 
+add_library(socket_private_constructor SHARED
+        socket_private_constructor.cpp
+)
+
 target_include_directories(l2c_fcr_hook PRIVATE
         xz
 )
@@ -29,6 +33,22 @@ target_compile_definitions(l2c_fcr_hook PRIVATE
         XZ_DEC_CONCATENATED
 )
 
+target_compile_options(socket_private_constructor PRIVATE
+        -O2
+        -fvisibility=hidden
+)
+
+target_link_options(socket_private_constructor PRIVATE
+        -Wl,--strip-all
+        -Wl,--gc-sections
+)
+
 target_link_libraries(l2c_fcr_hook
         android
-        log)
+        log
+)
+
+target_link_libraries(socket_private_constructor
+        android
+        log
+)

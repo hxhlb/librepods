@@ -2,7 +2,6 @@ package me.kavishdevar.librepods.utils
 
 import android.bluetooth.BluetoothDevice
 import android.util.Log
-import org.lsposed.hiddenapibypass.HiddenApiBypass
 
 object SystemApisUtils {
 
@@ -288,16 +287,14 @@ object SystemApisUtils {
     /**
      * Helper method to set metadata using HiddenApiBypass
      */
-     fun setMetadata(device: BluetoothDevice, key: Int, value: ByteArray): Boolean {
+    fun setMetadata(device: BluetoothDevice, key: Int, value: ByteArray): Boolean {
         return try {
-            val result = HiddenApiBypass.invoke(
-                BluetoothDevice::class.java,
-                device,
+            val method = BluetoothDevice::class.java.getMethod(
                 "setMetadata",
-                key,
-                value
-            ) as Boolean
-            result
+                Int::class.java,
+                ByteArray::class.java
+            )
+            method.invoke(device, key, value) as Boolean
         } catch (e: Exception) {
             Log.e("SystemApisUtils", "Failed to set metadata for key $key", e)
             false
