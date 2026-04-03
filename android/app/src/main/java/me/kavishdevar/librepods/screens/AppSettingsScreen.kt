@@ -605,38 +605,38 @@ fun AppSettingsScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Button(
-                onClick = { showResetDialog.value = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                ),
-                shape = RoundedCornerShape(28.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Reset",
-                        tint = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(R.string.reset_hook_offset),
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        style = TextStyle(
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium,
-                            fontFamily = FontFamily(Font(R.font.sf_pro))
-                        )
-                    )
-                }
-            }
+//            Button(
+//                onClick = { showResetDialog.value = true },
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .height(50.dp),
+//                colors = ButtonDefaults.buttonColors(
+//                    containerColor = MaterialTheme.colorScheme.errorContainer
+//                ),
+//                shape = RoundedCornerShape(28.dp)
+//            ) {
+//                Row(
+//                    verticalAlignment = Alignment.CenterVertically,
+//                    horizontalArrangement = Arrangement.Center
+//                ) {
+//                    Icon(
+//                        imageVector = Icons.Default.Refresh,
+//                        contentDescription = "Reset",
+//                        tint = MaterialTheme.colorScheme.onErrorContainer,
+//                        modifier = Modifier.size(18.dp)
+//                    )
+//                    Spacer(modifier = Modifier.width(8.dp))
+//                    Text(
+//                        text = stringResource(R.string.reset_hook_offset),
+//                        color = MaterialTheme.colorScheme.onErrorContainer,
+//                        style = TextStyle(
+//                            fontSize = 16.sp,
+//                            fontWeight = FontWeight.Medium,
+//                            fontFamily = FontFamily(Font(R.font.sf_pro))
+//                        )
+//                    )
+//                }
+//            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
