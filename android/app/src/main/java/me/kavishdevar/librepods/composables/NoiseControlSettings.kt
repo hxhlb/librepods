@@ -88,12 +88,12 @@ fun NoiseControlSettings(
     val context = LocalContext.current
     val offListeningModeConfigValue = service.aacpManager.controlCommandStatusList.find {
         it.identifier == AACPManager.Companion.ControlCommandIdentifiers.ALLOW_OFF_OPTION
-    }?.value?.takeIf { it.isNotEmpty() }?.get(0) == 1.toByte()
+    }?.value?.takeIf { it.isNotEmpty() }?.get(0) != 2.toByte()
     val offListeningMode = remember { mutableStateOf(offListeningModeConfigValue) }
 
     val offListeningModeListener = object: AACPManager.ControlCommandListener {
         override fun onControlCommandReceived(controlCommand: AACPManager.ControlCommand) {
-            offListeningMode.value = controlCommand.value[0] == 1.toByte()
+            offListeningMode.value = controlCommand.value[0] != 2.toByte()
         }
     }
 
