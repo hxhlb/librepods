@@ -122,9 +122,9 @@ fun BatteryView(service: AirPodsService, preview: Boolean = false) {
     val leftLevel = left?.level ?: 0
     val rightLevel = right?.level ?: 0
     val caseLevel = case?.level ?: 0
-    val leftCharging = left?.status == BatteryStatus.CHARGING
-    val rightCharging = right?.status == BatteryStatus.CHARGING
-    val caseCharging = case?.status == BatteryStatus.CHARGING
+    val leftCharging = left?.status == BatteryStatus.CHARGING || left?.status == BatteryStatus.OPTIMIZED_CHARGING
+    val rightCharging = right?.status == BatteryStatus.CHARGING || right?.status == BatteryStatus.OPTIMIZED_CHARGING
+    val caseCharging = case?.status == BatteryStatus.CHARGING || case?.status == BatteryStatus.OPTIMIZED_CHARGING
 
     val prevLeft = previousBatteryStatus.value.find { it.component == BatteryComponent.LEFT }
     val prevRight = previousBatteryStatus.value.find { it.component == BatteryComponent.RIGHT }

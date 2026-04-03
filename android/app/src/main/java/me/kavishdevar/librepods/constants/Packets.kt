@@ -40,6 +40,7 @@ object BatteryStatus {
     const val CHARGING = 1
     const val NOT_CHARGING = 2
     const val DISCONNECTED = 4
+    const val OPTIMIZED_CHARGING = 5
 }
 
 @Parcelize
@@ -58,6 +59,7 @@ data class Battery(val component: Int, val level: Int, val status: Int) : Parcel
             BatteryStatus.CHARGING -> "CHARGING"
             BatteryStatus.NOT_CHARGING -> "NOT_CHARGING"
             BatteryStatus.DISCONNECTED -> "DISCONNECTED"
+            BatteryStatus.OPTIMIZED_CHARGING -> "OPTIMIZED_CHARGING"
             else -> null
         }
     }
