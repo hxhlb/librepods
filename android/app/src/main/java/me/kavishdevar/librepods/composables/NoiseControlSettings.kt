@@ -108,6 +108,9 @@ fun NoiseControlSettings(
     val textColorSelected = if (isDarkTheme) Color.White else Color.Black
     val selectedBackground = if (isDarkTheme) Color(0xBF5C5A5F) else Color(0xFFFFFFFF)
 
+
+    val noiseControlModeFromService = service.aacpManager.getControlCommandStatus(AACPManager.Companion.ControlCommandIdentifiers.LISTENING_MODE)
+
     val noiseControlMode = remember { mutableStateOf(NoiseControlMode.OFF) }
 
     val d1a = remember { mutableFloatStateOf(0f) }
@@ -150,6 +153,17 @@ fun NoiseControlSettings(
                 d2a.floatValue = 0f
                 d3a.floatValue = 1f
             }
+        }
+    }
+
+
+    if (noiseControlModeFromService != null) {
+        val value = noiseControlModeFromService.value
+        if (value.isNotEmpty()) {
+            val index = (value[0].toInt() - 1).coerceIn(0, NoiseControlMode.entries.size - 1)
+            noiseControlMode.value = NoiseControlMode.entries[index]
+
+            onModeSelected(noiseControlMode.value, received = true)
         }
     }
 
