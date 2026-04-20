@@ -339,7 +339,7 @@ fun DebugScreen(navController: NavController) {
                 )
             }
         ),
-    ) { spacerHeight, hazeState ->
+    ) { topPadding, hazeState, bottomPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -348,7 +348,7 @@ fun DebugScreen(navController: NavController) {
                 .layerBackdrop(backdrop)
                 .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(spacerHeight))
+            Spacer(modifier = Modifier.height(topPadding))
             LazyColumn(
                 state = listState,
                 modifier = Modifier

@@ -19,6 +19,7 @@
 package me.kavishdevar.librepods.data
 
 import me.kavishdevar.librepods.utils.AACPManager
+import me.kavishdevar.librepods.utils.AACPManager.Companion.ControlCommandIdentifiers
 
 class ControlCommandRepository(
     private val aacpManager: AACPManager
@@ -59,5 +60,11 @@ class ControlCommandRepository(
         listener: AACPManager.ControlCommandListener
     ) {
         aacpManager.unregisterControlCommandListener(identifier, listener)
+    }
+
+    fun getMap(): Map<ControlCommandIdentifiers, ByteArray> {
+        return aacpManager.controlCommandStatusList.associate {
+            it.identifier to it.value
+        }
     }
 }

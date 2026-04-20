@@ -21,6 +21,7 @@
 package me.kavishdevar.librepods.composables
 
 import android.content.res.Configuration
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -32,6 +33,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -74,76 +77,84 @@ fun BatteryView(
 
     val singleDisplayed = remember { mutableStateOf(false) }
 
-    Row {
-        Column(
-            modifier = Modifier.fillMaxWidth(0.5f),
-            horizontalAlignment = Alignment.CenterHorizontally
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            modifier = Modifier.widthIn(max = 500.dp),
+            horizontalArrangement = Arrangement.Center
         ) {
-            Image(
-                bitmap = ImageBitmap.imageResource(budsRes),
-                contentDescription = stringResource(R.string.buds),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
-            )
-
-            if (
-                leftCharging == rightCharging &&
-                (leftLevel - rightLevel) in -3..3
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                BatteryIndicator(
-                    leftLevel.coerceAtMost(rightLevel),
-                    leftCharging
+                Image(
+                    bitmap = ImageBitmap.imageResource(budsRes),
+                    contentDescription = stringResource(R.string.buds),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
                 )
-                singleDisplayed.value = true
-            } else {
-                singleDisplayed.value = false
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
+                if (
+                    leftCharging == rightCharging &&
+                    (leftLevel - rightLevel) in -3..3
                 ) {
-                    if (leftLevel > 0 || left?.status != BatteryStatus.DISCONNECTED) {
-                        BatteryIndicator(
-                            leftLevel,
-                            leftCharging,
-                            "\uDBC6\uDCE5"
-                        )
-                    }
+                    BatteryIndicator(
+                        leftLevel.coerceAtMost(rightLevel),
+                        leftCharging
+                    )
+                    singleDisplayed.value = true
+                } else {
+                    singleDisplayed.value = false
 
-                    if (leftLevel > 0 && rightLevel > 0) {
-                        Spacer(modifier = Modifier.width(16.dp))
-                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        if (leftLevel > 0 || left?.status != BatteryStatus.DISCONNECTED) {
+                            BatteryIndicator(
+                                leftLevel,
+                                leftCharging,
+                                "\uDBC6\uDCE5"
+                            )
+                        }
 
-                    if (rightLevel > 0 || right?.status != BatteryStatus.DISCONNECTED) {
-                        BatteryIndicator(
-                            rightLevel,
-                            rightCharging,
-                            "\uDBC6\uDCE8"
-                        )
+                        if (leftLevel > 0 && rightLevel > 0) {
+                            Spacer(modifier = Modifier.width(16.dp))
+                        }
+
+                        if (rightLevel > 0 || right?.status != BatteryStatus.DISCONNECTED) {
+                            BatteryIndicator(
+                                rightLevel,
+                                rightCharging,
+                                "\uDBC6\uDCE8"
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Image(
-                bitmap = ImageBitmap.imageResource(caseRes),
-                contentDescription = stringResource(R.string.case_alt),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
-            )
-
-            if (caseLevel > 0 || case?.status != BatteryStatus.DISCONNECTED) {
-                BatteryIndicator(
-                    caseLevel,
-                    caseCharging,
-                    prefix = if (!singleDisplayed.value) "\uDBC3\uDE6C" else ""
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Image(
+                    bitmap = ImageBitmap.imageResource(caseRes),
+                    contentDescription = stringResource(R.string.case_alt),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
                 )
+
+                if (caseLevel > 0 || case?.status != BatteryStatus.DISCONNECTED) {
+                    BatteryIndicator(
+                        caseLevel,
+                        caseCharging,
+                        prefix = if (!singleDisplayed.value) "\uDBC3\uDE6C" else ""
+                    )
+                }
             }
         }
     }

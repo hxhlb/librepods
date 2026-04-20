@@ -18,7 +18,6 @@
 
 package me.kavishdevar.librepods.screens
 
-import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +32,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,7 +56,6 @@ import androidx.compose.ui.unit.sp
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import me.kavishdevar.librepods.R
@@ -69,7 +66,6 @@ import me.kavishdevar.librepods.utils.HearingAidSettings
 import me.kavishdevar.librepods.utils.parseHearingAidSettingsResponse
 import me.kavishdevar.librepods.utils.sendHearingAidSettings
 import java.io.IOException
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 private var debounceJob: MutableState<Job?> = mutableStateOf(null)
 private const val TAG = "HearingAidAdjustments"
@@ -92,7 +88,7 @@ fun UpdateHearingTestScreen() {
     val backdrop = rememberLayerBackdrop()
     StyledScaffold(
         title = stringResource(R.string.hearing_test)
-    ) { spacerHeight, hazeState ->
+    ) { topPadding, hazeState, bottomPadding ->
         Column(
             modifier = Modifier
                 .hazeSource(hazeState)
@@ -104,7 +100,7 @@ fun UpdateHearingTestScreen() {
         ) {
             val textColor = if (isSystemInDarkTheme()) Color.White else Color.Black
 
-            Spacer(modifier = Modifier.height(spacerHeight))
+            Spacer(modifier = Modifier.height(topPadding))
 
             Text(
                 text = stringResource(R.string.hearing_test_value_instruction),
@@ -356,6 +352,7 @@ fun UpdateHearingTestScreen() {
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(bottomPadding))
         }
     }
 }

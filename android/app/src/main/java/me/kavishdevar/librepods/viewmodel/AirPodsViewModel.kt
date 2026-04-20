@@ -28,6 +28,7 @@ import android.util.Log
 import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -35,6 +36,8 @@ import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.billing.BillingManager
 import me.kavishdevar.librepods.constants.AirPodsNotifications
 import me.kavishdevar.librepods.constants.Battery
+import me.kavishdevar.librepods.constants.BatteryComponent
+import me.kavishdevar.librepods.constants.BatteryStatus
 import me.kavishdevar.librepods.constants.StemAction
 import me.kavishdevar.librepods.data.ControlCommandRepository
 import me.kavishdevar.librepods.services.AirPodsService
@@ -91,6 +94,11 @@ class AirPodsViewModel(
     private val _uiState = MutableStateFlow(AirPodsUiState(deviceName = sharedPreferences.getString("name", "AirPods Pro") ?: "AirPods Pro"))
     val uiState: StateFlow<AirPodsUiState> = _uiState
 
+    private var isDemoMode = false
+    val demoActivated = MutableSharedFlow<Unit>()
+
+    private var billingFirstCollectDone = false
+
     private val listeners = mutableMapOf<
         ControlCommandIdentifiers,
         AACPManager.ControlCommandListener
@@ -120,6 +128,8 @@ class AirPodsViewModel(
         loadSharedPreferences()
         setupControlObservers()
         observeBilling()
+        loadControlList()
+        if (isDemoMode) activateDemoMode()
     }
 
     override fun onCleared() {
@@ -138,14 +148,19 @@ class AirPodsViewModel(
     }
 
     private fun observeBilling() {
-        viewModelScope.launch {
+        if (!isDemoMode) viewModelScope.launch {
             BillingManager.provider.isPremium.collect { premium ->
-
+                if (!billingFirstCollectDone) {
+                    billingFirstCollectDone = true
+                    return@collect
+                }
                 if (!premium) {
+                    Log.d("AirPodsViewModel", "we are not premium")
                     setControlCommandBoolean(ControlCommandIdentifiers.CONVERSATION_DETECT_CONFIG, false)
                     setHeadGesturesEnabled(false)
+                } else {
+                    Log.d("AirPodsViewModel", "we are premium")
                 }
-
                 _uiState.update { it.copy(isPremium = premium) }
             }
         }
@@ -154,7 +169,7 @@ class AirPodsViewModel(
     private fun observeBroadcasts() {
         broadcastReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                when (intent?.action) {
+                if (!isDemoMode) when (intent?.action) {
                     AirPodsNotifications.AIRPODS_CONNECTED -> {
                         _uiState.update {
                             it.copy(isLocallyConnected = true)
@@ -208,7 +223,7 @@ class AirPodsViewModel(
         identifier: ControlCommandIdentifiers,
         value: ByteArray
     ) {
-        controlRepo.setValue(identifier, value)
+        if (!isDemoMode) controlRepo.setValue(identifier, value)
         _uiState.update {
             it.copy(
                 controlStates = it.controlStates + (identifier to value)
@@ -290,6 +305,7 @@ class AirPodsViewModel(
     }
 
     fun refreshInitialData() {
+        if (isDemoMode) return
         service.let { service ->
             _uiState.update {
                 it.copy(
@@ -333,6 +349,14 @@ class AirPodsViewModel(
         sharedPreferences.edit { putBoolean("head_gestures", enabled) }
         _uiState.update {
             it.copy(headGesturesEnabled = enabled)
+        }
+    }
+
+    private fun loadControlList() {
+        _uiState.update {
+            it.copy(
+                controlStates = controlRepo.getMap()
+            )
         }
     }
 
@@ -413,5 +437,44 @@ class AirPodsViewModel(
 
     fun purchase(context: Context) {
         BillingManager.provider.purchase(context as Activity)
+    }
+
+    fun activateDemoMode() {
+        isDemoMode = true
+        viewModelScope.launch {
+            demoActivated.emit(Unit)
+        }
+        val fakeInstance = AirPodsInstance(
+            name = "AirPods Pro (Demo)",
+            model = AirPodsModels.getModelByModelNumber("A3049")!!,
+            actualModelNumber = "A3049",
+            aacpManager = service.aacpManager,
+            serialNumber = "DEMO123",
+            leftSerialNumber = "L-DEMO",
+            rightSerialNumber = "R-DEMO",
+            version1 = "1.0",
+            version2 = "1.0",
+            version3 = "1.0",
+            attManager = null
+        )
+
+        _uiState.update {
+            it.copy(
+                isLocallyConnected = true,
+                instance = fakeInstance,
+                capabilities = fakeInstance.model.capabilities,
+
+                battery = listOf(
+                    Battery(BatteryComponent.LEFT, 85, BatteryStatus.CHARGING),
+                    Battery(BatteryComponent.RIGHT, 25, BatteryStatus.NOT_CHARGING),
+                    Battery(BatteryComponent.CASE, 85, BatteryStatus.CHARGING),
+                ),
+
+                modelName = fakeInstance.model.displayName,
+                actualModel = fakeInstance.actualModelNumber,
+                serialNumbers = listOf("DEMO", "DEMO", "DEMO"),
+                version3 = "Demo Firmware"
+            )
+        }
     }
 }

@@ -81,7 +81,7 @@ fun AppSettingsScreen(
 
     StyledScaffold(
         title = stringResource(R.string.app_settings)
-    ) { spacerHeight, hazeState ->
+    ) { topPadding, hazeState, bottomPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -90,7 +90,7 @@ fun AppSettingsScreen(
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(spacerHeight))
+            Spacer(modifier = Modifier.height(topPadding))
 
             val isDarkTheme = isSystemInDarkTheme()
             val backgroundColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
@@ -189,19 +189,21 @@ fun AppSettingsScreen(
                 enabled = uiState.isPremium
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            if (!BuildConfig.PLAY_BUILD) {
+                Spacer(modifier = Modifier.height(16.dp))
 
-            NavigationButton(
-                to = "",
-                title = stringResource(R.string.camera_control),
-                name = stringResource(R.string.set_custom_camera_package),
-                navController = navController,
-                onClick = {
-                    if (uiState.isPremium) viewModel.setShowCameraDialog(true)
-                },
-                independent = true,
-                description = stringResource(R.string.camera_control_app_description)
-            )
+                NavigationButton(
+                    to = "",
+                    title = stringResource(R.string.camera_control),
+                    name = stringResource(R.string.set_custom_camera_package),
+                    navController = navController,
+                    onClick = {
+                        if (uiState.isPremium) viewModel.setShowCameraDialog(true)
+                    },
+                    independent = true,
+                    description = stringResource(R.string.camera_control_app_description)
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
             if (BuildConfig.FLAVOR == "xposed") {
@@ -437,6 +439,7 @@ fun AppSettingsScreen(
                     }
                 })
             }
+            Spacer(modifier = Modifier.height(bottomPadding))
         }
     }
 }

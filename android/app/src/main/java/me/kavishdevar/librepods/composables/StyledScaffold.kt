@@ -49,7 +49,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.navigation.NavController
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
@@ -57,7 +56,6 @@ import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.rememberHazeState
 import me.kavishdevar.librepods.R
 
@@ -66,7 +64,7 @@ fun StyledScaffold(
     title: String,
     actionButtons: List<@Composable (backdrop: LayerBackdrop) -> Unit> = emptyList(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
-    content: @Composable (spacerValue: Dp, hazeState: HazeState) -> Unit
+    content: @Composable (spacerValue: Dp, hazeState: HazeState, bottomPadding: Dp) -> Unit
 ) {
     val isDarkTheme = isSystemInDarkTheme()
     val hazeState = rememberHazeState(blurEnabled = true)
@@ -86,7 +84,7 @@ fun StyledScaffold(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = startPadding, end = endPadding, bottom = bottomPadding)
+                .padding(start = startPadding, end = endPadding)
         ) {
             val backdrop = rememberLayerBackdrop()
             Box(
@@ -126,7 +124,7 @@ fun StyledScaffold(
                 }
             }
 
-            content(topPadding + 64.dp, hazeState)
+            content(topPadding + 64.dp, hazeState, bottomPadding + 12.dp)
         }
     }
 }
@@ -143,7 +141,7 @@ fun StyledScaffold(
         title = title,
         actionButtons = actionButtons,
         snackbarHostState = snackbarHostState,
-    ) { _, _ ->
+    ) { _, _, _->
         content()
     }
 }
@@ -159,7 +157,7 @@ fun StyledScaffold(
         title = title,
         actionButtons = actionButtons,
         snackbarHostState = snackbarHostState,
-    ) { spacerValue, _ ->
+    ) { spacerValue, _, _ ->
         content(spacerValue)
     }
 }

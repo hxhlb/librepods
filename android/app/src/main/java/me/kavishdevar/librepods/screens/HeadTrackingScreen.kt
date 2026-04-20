@@ -42,6 +42,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -139,7 +140,7 @@ fun HeadTrackingScreen(viewModel: AirPodsViewModel) {
                 )
             }
         ),
-    ) { spacerHeight, hazeState ->
+    ) { topPadding, hazeState, _ ->
 
         var gestureText by remember { mutableStateOf("") }
         val coroutineScope = rememberCoroutineScope()
@@ -160,7 +161,7 @@ fun HeadTrackingScreen(viewModel: AirPodsViewModel) {
                     .padding(horizontal = 16.dp)
                     .verticalScroll(scrollState)
             ) {
-                Spacer(modifier = Modifier.height(spacerHeight))
+                Spacer(modifier = Modifier.height(topPadding))
 
                 val context = LocalContext.current
 
@@ -404,7 +405,8 @@ private fun HeadVisualization() {
             .aspectRatio(2f),
         colors = CardDefaults.cardColors(
             containerColor = backgroundColor
-        )
+        ),
+        shape = RoundedCornerShape(28.dp)
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -655,7 +657,8 @@ private fun AccelerationPlot() {
             .height(300.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (darkTheme) Color(0xFF1C1C1E) else Color.White
-        )
+        ),
+        shape = RoundedCornerShape(28.dp)
     ) {
         Box(
             modifier = Modifier

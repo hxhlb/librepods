@@ -104,7 +104,7 @@ fun TransparencySettingsScreen(viewModel: AirPodsViewModel) {
 
     StyledScaffold(
         title = stringResource(R.string.customize_transparency_mode)
-    ){ spacerHeight, hazeState ->
+    ){ topPadding, hazeState, bottomPadding ->
         Column(
             modifier = Modifier
                 .hazeSource(hazeState)
@@ -114,7 +114,7 @@ fun TransparencySettingsScreen(viewModel: AirPodsViewModel) {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(spacerHeight))
+            Spacer(modifier = Modifier.height(topPadding))
             val backgroundColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
 
             val enabled = remember { mutableStateOf(false) }
@@ -441,6 +441,8 @@ fun TransparencySettingsScreen(viewModel: AirPodsViewModel) {
 
                 Spacer(modifier = Modifier.height(16.dp))
             }
+
+            Spacer(modifier = Modifier.height(bottomPadding))
         }
     }
 }

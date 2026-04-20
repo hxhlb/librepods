@@ -216,7 +216,7 @@ fun TroubleshootingScreen(navController: NavController) {
     ) {
         StyledScaffold(
             title = stringResource(R.string.troubleshooting)
-        ){ spacerHeight, hazeState ->
+        ){ topPadding, hazeState, bottomPadding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -225,7 +225,7 @@ fun TroubleshootingScreen(navController: NavController) {
                     .verticalScroll(scrollState)
                     .padding(horizontal = 16.dp)
             ) {
-                Spacer(modifier = Modifier.height(spacerHeight))
+                Spacer(modifier = Modifier.height(topPadding))
 
                 Text(
                     text = stringResource(R.string.saved_logs),

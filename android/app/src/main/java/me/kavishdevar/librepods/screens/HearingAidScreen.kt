@@ -102,7 +102,7 @@ fun HearingAidScreen(viewModel: AirPodsViewModel, navController: NavController) 
     StyledScaffold(
         title = stringResource(R.string.hearing_aid),
         snackbarHostState = snackbarHostState,
-    ) { spacerHeight, hazeState ->
+    ) { topPadding, hazeState, bottomPadding ->
         Column(
             modifier = Modifier
                 .layerBackdrop(backdrop)
@@ -113,7 +113,7 @@ fun HearingAidScreen(viewModel: AirPodsViewModel, navController: NavController) 
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             hazeStateS.value = hazeState
-            Spacer(modifier = Modifier.height(spacerHeight))
+            Spacer(modifier = Modifier.height(topPadding))
 
 //            val mediaAssistEnabled = remember { mutableStateOf(false) }
 //            val adjustMediaEnabled = remember { mutableStateOf(false) }
@@ -234,6 +234,7 @@ fun HearingAidScreen(viewModel: AirPodsViewModel, navController: NavController) 
             //         independent = false
             //     )
             // }
+            Spacer(modifier = Modifier.height(bottomPadding))
         }
     }
 

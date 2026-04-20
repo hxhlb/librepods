@@ -101,7 +101,7 @@ fun AccessibilitySettingsScreen(viewModel: AirPodsViewModel, navController: NavC
 
     StyledScaffold(
         title = stringResource(R.string.accessibility)
-    ) { spacerHeight, hazeState ->
+    ) { topPadding, hazeState, bottomPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -111,7 +111,7 @@ fun AccessibilitySettingsScreen(viewModel: AirPodsViewModel, navController: NavC
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(spacerHeight))
+            Spacer(modifier = Modifier.height(topPadding))
 
 //            val phoneMediaEQ = remember { mutableStateOf(FloatArray(8) { 0.5f }) }
 //            val phoneEQEnabled = remember { mutableStateOf(false) }
@@ -508,6 +508,7 @@ fun AccessibilitySettingsScreen(viewModel: AirPodsViewModel, navController: NavC
                 //     }
                 // }
 //            }
+            Spacer(modifier = Modifier.height(bottomPadding))
         }
     }
 }

@@ -24,6 +24,8 @@ package me.kavishdevar.librepods.screens
 import android.annotation.SuppressLint
 import android.content.Context.MODE_PRIVATE
 import android.content.SharedPreferences
+import android.util.Log
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -42,12 +44,16 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -56,7 +62,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -66,6 +71,7 @@ import com.kyant.backdrop.highlight.Highlight
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import kotlinx.coroutines.delay
 import me.kavishdevar.librepods.BuildConfig
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.composables.AboutCard
@@ -82,7 +88,6 @@ import me.kavishdevar.librepods.composables.StyledButton
 import me.kavishdevar.librepods.composables.StyledIconButton
 import me.kavishdevar.librepods.composables.StyledScaffold
 import me.kavishdevar.librepods.composables.StyledToggle
-import me.kavishdevar.librepods.ui.theme.LibrePodsTheme
 import me.kavishdevar.librepods.utils.AACPManager
 import me.kavishdevar.librepods.utils.ATTHandles
 import me.kavishdevar.librepods.utils.AirPodsPro3
@@ -131,15 +136,24 @@ fun AirPodsSettingsScreen(viewModel: AirPodsViewModel, navController: NavControl
 
     StyledScaffold(
         title = deviceName.text, actionButtons = listOf(
-        { scaffoldBackdrop ->
-            StyledIconButton(
-                onClick = { navController.navigate("app_settings") },
-                icon = "􀍟",
-                backdrop = scaffoldBackdrop
-            )
-        }), snackbarHostState = snackbarHostState
-    ) { spacerHeight, hazeState ->
+            { scaffoldBackdrop ->
+                StyledIconButton(
+                    onClick = { navController.navigate("app_settings") },
+                    icon = "􀍟",
+                    backdrop = scaffoldBackdrop
+                )
+            }), snackbarHostState = snackbarHostState
+    ) { topPadding, hazeState, bottomPadding ->
         hazeStateS.value = hazeState
+        var blockTouches by remember { mutableStateOf(false) }
+
+        LaunchedEffect(Unit) {
+            viewModel.demoActivated.collect {
+                blockTouches = true
+                delay(1000)
+                blockTouches = false
+            }
+        }
 
         if (state.isLocallyConnected) {
             val capabilities = state.capabilities
@@ -148,8 +162,18 @@ fun AirPodsSettingsScreen(viewModel: AirPodsViewModel, navController: NavControl
                     .fillMaxSize()
                     .hazeSource(hazeState)
                     .padding(horizontal = 16.dp)
+                    .then(
+                        if (blockTouches) Modifier.pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                                    event.changes.forEach { it.consume() }
+                                }
+                            }
+                        } else Modifier
+                    )
             ) {
-                item(key = "spacer_top") { Spacer(modifier = Modifier.height(spacerHeight)) }
+                item(key = "spacer_top") { Spacer(modifier = Modifier.height(topPadding)) }
                 item(key = "battery") {
                     BatteryView(
                         batteryList = state.battery,
@@ -341,8 +365,7 @@ fun AirPodsSettingsScreen(viewModel: AirPodsViewModel, navController: NavControl
                             viewModel.setAutomaticEarDetectionEnabled(it)
                         },
                         automaticConnectionEnabled = state.automaticConnectionEnabled,
-                        onAutomaticConnectionChanged = { viewModel.setAutomaticConnectionEnabled(it) }
-                    )
+                        onAutomaticConnectionChanged = { viewModel.setAutomaticConnectionEnabled(it) })
                 }
 
                 item(key = "spacer_microphone") { Spacer(modifier = Modifier.height(16.dp)) }
@@ -420,7 +443,7 @@ fun AirPodsSettingsScreen(viewModel: AirPodsViewModel, navController: NavControl
 
 //                item(key = "spacer_debug") { Spacer(modifier = Modifier.height(16.dp)) }
 //                item(key = "debug") { NavigationButton("debug", "Debug", navController) }
-                item(key = "spacer_bottom") { Spacer(Modifier.height(24.dp)) }
+                item(key = "spacer_bottom") { Spacer(Modifier.height(bottomPadding)) }
             }
         } else {
             val backdrop = rememberLayerBackdrop()
@@ -440,26 +463,54 @@ fun AirPodsSettingsScreen(viewModel: AirPodsViewModel, navController: NavControl
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = stringResource(R.string.airpods_not_connected), style = TextStyle(
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = if (isSystemInDarkTheme()) Color.White else Color.Black,
-                        fontFamily = FontFamily(Font(R.font.sf_pro))
-                    ), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
+                val tapCount = remember { mutableIntStateOf(0) }
+                val lastTapTime = remember { mutableLongStateOf(0L) }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = {
+                                    val now = System.currentTimeMillis()
+
+                                    if (now - lastTapTime.longValue > 400) {
+                                        tapCount.intValue = 0
+                                    }
+
+                                    tapCount.intValue++
+                                    lastTapTime.longValue = now
+
+                                    if (tapCount.intValue >= 5) {
+                                        tapCount.intValue = 0
+                                        viewModel.activateDemoMode()
+                                    }
+                                }
+                            )
+                        }
                 )
-                Spacer(Modifier.height(24.dp))
-                Text(
-                    text = stringResource(R.string.airpods_not_connected_description),
-                    style = TextStyle(
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Light,
-                        color = if (isSystemInDarkTheme()) Color.White else Color.Black,
-                        fontFamily = FontFamily(Font(R.font.sf_pro))
-                    ),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                {
+                    Text(
+                        text = stringResource(R.string.airpods_not_connected), style = TextStyle(
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                            fontFamily = FontFamily(Font(R.font.sf_pro))
+                        ), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(24.dp))
+                    Text(
+                        text = stringResource(R.string.airpods_not_connected_description),
+                        style = TextStyle(
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Light,
+                            color = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                            fontFamily = FontFamily(Font(R.font.sf_pro))
+                        ),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
                 Spacer(Modifier.height(32.dp))
 //                StyledButton(
 //                    onClick = { navController.navigate("troubleshooting") },
@@ -493,20 +544,6 @@ fun AirPodsSettingsScreen(viewModel: AirPodsViewModel, navController: NavControl
                     )
                 }
             }
-        }
-    }
-}
-
-@Preview
-@Composable
-fun AirPodsSettingsScreenPreview() {
-    Column(
-        modifier = Modifier.height(2000.dp)
-    ) {
-        LibrePodsTheme(
-            darkTheme = true
-        ) {
-//            AirPodsSettingsScreen(dev = null, service = AirPodsService(), navController = rememberNavController(), isConnected = true, isRemotelyConnected = false)
         }
     }
 }
