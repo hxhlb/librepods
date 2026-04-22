@@ -24,6 +24,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <elf.h>
+#include <atomic>
+#include <jni.h>
 
 #include "l2c_fcr_hook.h"
 
@@ -31,7 +33,7 @@ extern "C" {
     #include "xz.h"
 }
 
-#define LOG_TAG "LibrePods"
+#define LOG_TAG "LibrePodsHook"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
@@ -41,8 +43,10 @@ static uint8_t (*original_l2c_fcr_chk_chan_modes)(void*) = nullptr;
 static tBTA_STATUS (*original_BTA_DmSetLocalDiRecord)(
         tSDP_DI_RECORD*, uint32_t*) = nullptr;
 
+static std::atomic<bool> enableSdpHook(false);
+
 uint8_t fake_l2c_fcr_chk_chan_modes(void* p_ccb) {
-    LOGI("l2c_fcr_chk_chan_modes hooked");
+    LOGI("l2c_fcr_chk_chan_modes called");
     uint8_t orig = 0;
     if (original_l2c_fcr_chk_chan_modes)
         orig = original_l2c_fcr_chk_chan_modes(p_ccb);
@@ -55,7 +59,11 @@ tBTA_STATUS fake_BTA_DmSetLocalDiRecord(
         tSDP_DI_RECORD* p_device_info,
         uint32_t* p_handle) {
 
-    LOGI("BTA_DmSetLocalDiRecord hooked");
+    LOGI("BTA_DmSetLocalDiRecord called");
+
+    if (original_BTA_DmSetLocalDiRecord && enableSdpHook.load(std::memory_order_relaxed)) original_BTA_DmSetLocalDiRecord(p_device_info, p_handle);
+
+    LOGI("BTA_DmSetLocalDiRecord changing vendor id and source");
 
     if (p_device_info) {
         p_device_info->vendor = 0x004C;
@@ -265,9 +273,9 @@ static bool hookLibrary(const char* libname) {
                     findSymbolOffset(decompressed,
                                      "l2c_fcr_chk_chan_modes");
 
-//            uint64_t sdp_offset =
-//                    findSymbolOffset(decompressed,
-//                                     "BTA_DmSetLocalDiRecord");
+            uint64_t sdp_offset =
+                    findSymbolOffset(decompressed,
+                                     "BTA_DmSetLocalDiRecord");
 
             if (chk_offset) {
                 void* target =
@@ -280,16 +288,16 @@ static bool hookLibrary(const char* libname) {
                 LOGI("Hooked l2c_fcr_chk_chan_modes");
             }
 
-//            if (sdp_offset) {
-//                void* target =
-//                        reinterpret_cast<void*>(base + sdp_offset);
-//
-//                hook_func(target,
-//                          (void*)fake_BTA_DmSetLocalDiRecord,
-//                          (void**)&original_BTA_DmSetLocalDiRecord);
-//
-//                LOGI("Hooked BTA_DmSetLocalDiRecord");
-//            }
+            if (sdp_offset) {
+                void* target =
+                        reinterpret_cast<void*>(base + sdp_offset);
+
+                hook_func(target,
+                          (void*)fake_BTA_DmSetLocalDiRecord,
+                          (void**)&original_BTA_DmSetLocalDiRecord);
+
+                LOGI("Hooked BTA_DmSetLocalDiRecord");
+            }
 
             return true;
         }
@@ -315,10 +323,16 @@ extern "C"
 [[gnu::visibility("default")]]
 [[gnu::used]]
 NativeOnModuleLoaded native_init(const NativeAPIEntries* entries) {
-
-    LOGI("LibrePods initialized");
-
     hook_func = (HookFunType)entries->hook_func;
-
+    LOGI("LibrePodsNativeHook initialized, sdp hook enabled: %d", enableSdpHook.load(std::memory_order_relaxed));
     return on_library_loaded;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_me_kavishdevar_librepods_utils_NativeBridge_setSdpHook(
+        JNIEnv*, jobject thiz, jboolean enable) {
+    enableSdpHook.store(enable, std::memory_order_relaxed);
+
+    LOGI("sdp hook enabled: %d", enable);
 }

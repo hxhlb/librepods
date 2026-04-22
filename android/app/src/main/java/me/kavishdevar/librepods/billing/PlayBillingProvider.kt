@@ -55,6 +55,10 @@ class PlayBillingProvider(
     private val _isPremium = MutableStateFlow(false)
     override val isPremium: StateFlow<Boolean> = _isPremium
 
+    private val _price = MutableStateFlow("unknown")
+    override val price: StateFlow<String> = _price
+
+
     private var productDetails: ProductDetails? = null
 
     private val billingClient = BillingClient.newBuilder(context)
@@ -102,6 +106,13 @@ class PlayBillingProvider(
         if (result.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
             productDetails = result.productDetailsList?.firstOrNull()
             Log.d(TAG, "Product loaded: ${productDetails?.name}")
+            val priceString = productDetails
+                ?.oneTimePurchaseOfferDetails
+                ?.formattedPrice
+
+            if (priceString != null) {
+                _price.value = priceString
+            }
         } else {
             Log.w(TAG, "queryProductDetails failed: ${result.billingResult.debugMessage}")
         }
@@ -152,13 +163,13 @@ class PlayBillingProvider(
         }
 
 
-//        val purchase = purchases.find {
+//        val navigateToPurchase = purchases.find {
 //            it.products.contains(PREMIUM_PRODUCT_ID) && it.purchaseState == Purchase.PurchaseState.PURCHASED
 //        }
 //
-//        if (purchase != null) {
+//        if (navigateToPurchase != null) {
 //            val consumeParams = ConsumeParams.newBuilder()
-//                .setPurchaseToken(purchase.purchaseToken)
+//                .setPurchaseToken(navigateToPurchase.purchaseToken)
 //                .build()
 //            scope.launch {
 //                billingClient.consumeAsync(consumeParams) { _, _ ->}
@@ -182,6 +193,12 @@ class PlayBillingProvider(
         val result = billingClient.acknowledgePurchase(params)
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {
             Log.e(TAG, "Acknowledgement failed: ${result.debugMessage}")
+        }
+    }
+
+    override fun queryPurchases() {
+        scope.launch {
+            queryExistingPurchases()
         }
     }
 }

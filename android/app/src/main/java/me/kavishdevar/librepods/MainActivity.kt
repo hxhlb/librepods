@@ -22,6 +22,7 @@ package me.kavishdevar.librepods
 
 // import me.kavishdevar.librepods.screens.Onboarding
 // import me.kavishdevar.librepods.utils.RadareOffsetFinder
+//import dagger.hilt.android.AndroidEntryPoint
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -51,7 +52,9 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -61,6 +64,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -77,6 +81,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -88,6 +94,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
@@ -111,40 +119,44 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import dagger.hilt.android.AndroidEntryPoint
+import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.rememberHazeState
+import kotlinx.coroutines.delay
 import me.kavishdevar.librepods.billing.BillingManager
 import me.kavishdevar.librepods.billing.BillingProviderFactory
-import me.kavishdevar.librepods.composables.StyledIconButton
-import me.kavishdevar.librepods.constants.AirPodsNotifications
+import me.kavishdevar.librepods.data.AirPodsNotifications
 import me.kavishdevar.librepods.data.ControlCommandRepository
-import me.kavishdevar.librepods.screens.AccessibilitySettingsScreen
-import me.kavishdevar.librepods.screens.AdaptiveStrengthScreen
-import me.kavishdevar.librepods.screens.AirPodsSettingsScreen
-import me.kavishdevar.librepods.screens.AppSettingsScreen
-import me.kavishdevar.librepods.screens.CameraControlScreen
-import me.kavishdevar.librepods.screens.DebugScreen
-import me.kavishdevar.librepods.screens.HeadTrackingScreen
-import me.kavishdevar.librepods.screens.HearingAidAdjustmentsScreen
-import me.kavishdevar.librepods.screens.HearingAidScreen
-import me.kavishdevar.librepods.screens.HearingProtectionScreen
-import me.kavishdevar.librepods.screens.LongPress
-import me.kavishdevar.librepods.screens.OpenSourceLicensesScreen
-import me.kavishdevar.librepods.screens.RenameScreen
-import me.kavishdevar.librepods.screens.TransparencySettingsScreen
-import me.kavishdevar.librepods.screens.UpdateHearingTestScreen
-import me.kavishdevar.librepods.screens.VersionScreen
+import me.kavishdevar.librepods.presentation.components.ConfirmationDialog
+import me.kavishdevar.librepods.presentation.components.StyledIconButton
+import me.kavishdevar.librepods.presentation.screens.AccessibilitySettingsScreen
+import me.kavishdevar.librepods.presentation.screens.AdaptiveStrengthScreen
+import me.kavishdevar.librepods.presentation.screens.AirPodsSettingsScreen
+import me.kavishdevar.librepods.presentation.screens.AppSettingsScreen
+import me.kavishdevar.librepods.presentation.screens.CameraControlScreen
+import me.kavishdevar.librepods.presentation.screens.DebugScreen
+import me.kavishdevar.librepods.presentation.screens.HeadTrackingScreen
+import me.kavishdevar.librepods.presentation.screens.HearingAidAdjustmentsScreen
+import me.kavishdevar.librepods.presentation.screens.HearingAidScreen
+import me.kavishdevar.librepods.presentation.screens.HearingProtectionScreen
+import me.kavishdevar.librepods.presentation.screens.LongPress
+import me.kavishdevar.librepods.presentation.screens.OpenSourceLicensesScreen
+import me.kavishdevar.librepods.presentation.screens.PurchaseScreen
+import me.kavishdevar.librepods.presentation.screens.RenameScreen
+import me.kavishdevar.librepods.presentation.screens.TransparencySettingsScreen
+import me.kavishdevar.librepods.presentation.screens.UpdateHearingTestScreen
+import me.kavishdevar.librepods.presentation.screens.VersionScreen
+import me.kavishdevar.librepods.presentation.viewmodel.AirPodsViewModel
+import me.kavishdevar.librepods.presentation.viewmodel.AppSettingsViewModel
+import me.kavishdevar.librepods.presentation.viewmodel.PurchaseViewModel
 import me.kavishdevar.librepods.services.AirPodsService
-import me.kavishdevar.librepods.ui.theme.LibrePodsTheme
 import me.kavishdevar.librepods.utils.isSupported
-import me.kavishdevar.librepods.viewmodel.AirPodsViewModel
-import me.kavishdevar.librepods.viewmodel.AppSettingsViewModel
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 lateinit var serviceConnection: ServiceConnection
 lateinit var connectionStatusReceiver: BroadcastReceiver
 
-@AndroidEntryPoint
+//@AndroidEntryPoint
 @ExperimentalMaterial3Api
 class MainActivity : ComponentActivity() {
     companion object {
@@ -161,7 +173,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            LibrePodsTheme {
+            _root_ide_package_.me.kavishdevar.librepods.presentation.theme.LibrePodsTheme {
                 Main()
             }
         }
@@ -203,28 +215,153 @@ class MainActivity : ComponentActivity() {
 
 @ExperimentalHazeMaterialsApi
 @SuppressLint("MissingPermission", "InlinedApi", "UnspecifiedRegisterReceiverFlag")
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun Main() {
-    if (!isSupported()) {
+    val context = LocalContext.current
+    val sharedPreferences = context.getSharedPreferences("settings", MODE_PRIVATE)
+    if (!isSupported(sharedPreferences)) {
+        val showDialog = remember { mutableStateOf(false) }
+        val blockTouches = remember { mutableStateOf(false) }
+        val tapCount = remember { mutableIntStateOf(0) }
+        val lastTapTime = remember { mutableLongStateOf(0L) }
+
+        val hazeState = rememberHazeState()
+
+        LaunchedEffect(blockTouches) {
+            if (blockTouches.value) {
+                delay(500)
+                blockTouches.value = false
+            }
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .hazeSource(hazeState)
                 .background(if (isSystemInDarkTheme()) Color.Black else Color(0xFFF2F2F7)),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "Not supported. Device Info: BUILD_ID: ${Build.ID} SDK_INT_FULL: ${Build.VERSION.SDK_INT_FULL}, MANUFACTURER: ${Build.MANUFACTURER}.\nCheck out the repository for more info.",
-                color = if (isSystemInDarkTheme()) Color.White else Color.Black,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(16.dp)
+            Box (
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(
+                        if (blockTouches.value)
+                        {
+                            Modifier.pointerInput(Unit) {
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                                        event.changes.forEach { it.consume() }
+                                    }
+                                }
+                            }
+                        }
+                        else Modifier
+                    )
             )
+            Column (
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Not supported",
+                    style = TextStyle(
+                        fontFamily = FontFamily(Font(R.font.sf_pro)),
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                        fontSize = 20.sp
+                    ),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row (
+                    modifier = Modifier.fillMaxWidth().pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = {
+                                val now = System.currentTimeMillis()
+
+                                if (now - lastTapTime.longValue > 400) {
+                                    tapCount.intValue = 0
+                                }
+
+                                tapCount.intValue++
+                                lastTapTime.longValue = now
+
+                                if (tapCount.intValue >= 7) {
+                                    showDialog.value = true
+                                    blockTouches.value = true
+                                }
+                            }
+                        )
+                    },
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Device Info:",
+                        style = TextStyle(
+                            fontFamily = FontFamily(Font(R.font.sf_pro)),
+                            fontWeight = FontWeight.Medium,
+                            color = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                            fontSize = 16.sp
+                        ),
+                        textAlign = TextAlign.End,
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text =
+                            "MANUFACTURER=${Build.MANUFACTURER}\n" +
+                            "MODEL=${Build.MODEL}\n" +
+                            "BUILD_ID=${Build.ID}\n" +
+                            "SDK_INT_FULL= ${Build.VERSION.SDK_INT_FULL}\n",
+                        style = TextStyle(
+                            fontFamily = FontFamily(Font(R.font.hack)),
+                            fontWeight = FontWeight.Medium,
+                            color = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                            fontSize = 16.sp
+                        ),
+                        textAlign = TextAlign.Start,
+                    )
+                }
+                Text(
+                    text = "Check the repository for more info.",
+                    style = TextStyle(
+                        fontFamily = FontFamily(Font(R.font.sf_pro)),
+                        fontWeight = FontWeight.Medium,
+                        color = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                        fontSize = 18.sp
+                    ),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
+
+        ConfirmationDialog(
+            showDialog = showDialog,
+            title = "Confirm device check bypass?",
+            message = "Are you sure your device is supported with LibrePods?",
+            confirmText = "Yes",
+            dismissText = "No",
+            onConfirm = {
+                showDialog.value = false
+                sharedPreferences.edit {
+                    tapCount.intValue = 0
+                    putBoolean("bypass_device_check", true)
+                    val intent = Intent(context, MainActivity::class.java)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                    context.startActivity(intent)
+                }
+            },
+            onDismiss = {
+                showDialog.value = false
+            },
+            hazeState = hazeState
+        )
+
         return
     }
 
     val isConnected = remember { mutableStateOf(false) }
-    val context = LocalContext.current
+
     var canDrawOverlays by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
     val overlaySkipped = remember {
         mutableStateOf(
@@ -263,7 +400,7 @@ fun Main() {
 
     val airPodsService = remember { mutableStateOf<AirPodsService?>(null) }
 
-    val viewModel = remember(airPodsService.value) {
+    val airPodsViewModel = remember(airPodsService.value) {
         airPodsService.value?.let { service ->
             AirPodsViewModel(
                 service = service,
@@ -317,19 +454,20 @@ fun Main() {
                         )
                     }) {
                     composable("settings") {
-                        if (viewModel != null) AirPodsSettingsScreen(viewModel, navController)
+                        if (airPodsViewModel != null) AirPodsSettingsScreen(airPodsViewModel, navController)
                     }
                     composable("debug") {
                         DebugScreen(navController = navController)
                     }
                     composable("long_press/{bud}") { navBackStackEntry ->
-                        if (viewModel != null) LongPress(
-                            viewModel = viewModel,
-                            name = navBackStackEntry.arguments?.getString("bud")!!
+                        if (airPodsViewModel != null) LongPress(
+                            viewModel = airPodsViewModel,
+                            name = navBackStackEntry.arguments?.getString("bud")!!,
+                            navController = navController
                         )
                     }
                     composable("rename") {
-                        if (viewModel != null) RenameScreen(viewModel)
+                        if (airPodsViewModel != null) RenameScreen(airPodsViewModel)
                     }
                     composable("app_settings") {
                         val appSettingsViewModel: AppSettingsViewModel = viewModel()
@@ -339,37 +477,41 @@ fun Main() {
 //                        TroubleshootingScreen(navController)
 //                    }
                     composable("head_tracking") {
-                        if (viewModel != null) HeadTrackingScreen(viewModel)
+                        if (airPodsViewModel != null) HeadTrackingScreen(airPodsViewModel, navController)
                     }
                     composable("accessibility") {
-                        if (viewModel != null) AccessibilitySettingsScreen(viewModel, navController)
+                        if (airPodsViewModel != null) AccessibilitySettingsScreen(airPodsViewModel, navController)
                     }
                     composable("transparency_customization") {
-                        if (viewModel != null) TransparencySettingsScreen(viewModel)
+                        if (airPodsViewModel != null) TransparencySettingsScreen(airPodsViewModel)
                     }
                     composable("hearing_aid") {
-                        if (viewModel != null) HearingAidScreen(viewModel, navController)
+                        if (airPodsViewModel != null) HearingAidScreen(airPodsViewModel, navController)
                     }
                     composable("hearing_aid_adjustments") {
-                        if (viewModel != null) HearingAidAdjustmentsScreen(viewModel)
+                        if (airPodsViewModel != null) HearingAidAdjustmentsScreen(airPodsViewModel)
                     }
                     composable("adaptive_strength") {
-                        if (viewModel != null) AdaptiveStrengthScreen(viewModel)
+                        if (airPodsViewModel != null) AdaptiveStrengthScreen(airPodsViewModel, navController)
                     }
                     composable("camera_control") {
-                        if (viewModel != null) CameraControlScreen(viewModel)
+                        if (airPodsViewModel != null) CameraControlScreen(airPodsViewModel)
                     }
                     composable("open_source_licenses") {
                         OpenSourceLicensesScreen(navController)
                     }
                     composable("update_hearing_test") {
-                        if (viewModel != null) UpdateHearingTestScreen()
+                        if (airPodsViewModel != null) UpdateHearingTestScreen()
                     }
                     composable("version_info") {
-                        if (viewModel != null) VersionScreen(viewModel)
+                        if (airPodsViewModel != null) VersionScreen(airPodsViewModel)
                     }
                     composable("hearing_protection") {
-                        if (viewModel != null) HearingProtectionScreen(viewModel)
+                        if (airPodsViewModel != null) HearingProtectionScreen(airPodsViewModel)
+                    }
+                    composable("purchase_screen") {
+                        val purchaseViewModel: PurchaseViewModel = viewModel()
+                        PurchaseScreen(purchaseViewModel, navController)
                     }
                 }
             }

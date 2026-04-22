@@ -35,9 +35,9 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import me.kavishdevar.librepods.QuickSettingsDialogActivity
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.constants.AirPodsNotifications
-import me.kavishdevar.librepods.constants.NoiseControlMode
-import me.kavishdevar.librepods.utils.AACPManager
+import me.kavishdevar.librepods.data.AirPodsNotifications
+import me.kavishdevar.librepods.data.NoiseControlMode
+import me.kavishdevar.librepods.bluetooth.AACPManager
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 @RequiresApi(Build.VERSION_CODES.Q)

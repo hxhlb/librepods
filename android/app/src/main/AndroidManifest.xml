@@ -36,6 +36,7 @@
     <uses-permission android:name="com.android.vending.BILLING" />
 
     <application
+        android:name=".LibrePodsApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:enableOnBackInvokedCallback="true"
@@ -48,7 +49,7 @@
         android:description="@string/app_description"
         tools:ignore="UnusedAttribute" >
         <receiver
-            android:name=".widgets.NoiseControlWidget"
+            android:name=".presentation.widgets.NoiseControlWidget"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -60,7 +61,7 @@
         </receiver>
 
         <receiver
-            android:name=".widgets.BatteryWidget"
+            android:name=".presentation.widgets.BatteryWidget"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

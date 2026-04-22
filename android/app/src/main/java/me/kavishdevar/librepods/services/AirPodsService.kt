@@ -83,25 +83,28 @@ import kotlinx.coroutines.withTimeout
 import me.kavishdevar.librepods.BuildConfig
 import me.kavishdevar.librepods.MainActivity
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.constants.AirPodsNotifications
-import me.kavishdevar.librepods.constants.Battery
-import me.kavishdevar.librepods.constants.BatteryComponent
-import me.kavishdevar.librepods.constants.BatteryStatus
-import me.kavishdevar.librepods.constants.StemAction
-import me.kavishdevar.librepods.constants.isHeadTrackingData
-import me.kavishdevar.librepods.utils.AACPManager
-import me.kavishdevar.librepods.utils.AACPManager.Companion.StemPressType
-import me.kavishdevar.librepods.utils.ATTManager
-import me.kavishdevar.librepods.utils.AirPodsInstance
-import me.kavishdevar.librepods.utils.AirPodsModels
-import me.kavishdevar.librepods.utils.BLEManager
-import me.kavishdevar.librepods.utils.BluetoothConnectionManager
+import me.kavishdevar.librepods.bluetooth.AACPManager
+import me.kavishdevar.librepods.bluetooth.AACPManager.Companion.StemPressType
+import me.kavishdevar.librepods.bluetooth.ATTManager
+import me.kavishdevar.librepods.bluetooth.BLEManager
+import me.kavishdevar.librepods.bluetooth.BluetoothConnectionManager
+import me.kavishdevar.librepods.data.AirPodsInstance
+import me.kavishdevar.librepods.data.AirPodsModels
+import me.kavishdevar.librepods.data.AirPodsNotifications
+import me.kavishdevar.librepods.data.Battery
+import me.kavishdevar.librepods.data.BatteryComponent
+import me.kavishdevar.librepods.data.BatteryStatus
+import me.kavishdevar.librepods.data.StemAction
+import me.kavishdevar.librepods.data.XposedRemotePrefProvider
+import me.kavishdevar.librepods.data.isHeadTrackingData
+import me.kavishdevar.librepods.presentation.overlays.IslandType
+import me.kavishdevar.librepods.presentation.overlays.IslandWindow
+import me.kavishdevar.librepods.presentation.overlays.PopupWindow
+import me.kavishdevar.librepods.presentation.widgets.BatteryWidget
+import me.kavishdevar.librepods.presentation.widgets.NoiseControlWidget
 import me.kavishdevar.librepods.utils.GestureDetector
 import me.kavishdevar.librepods.utils.HeadTracking
-import me.kavishdevar.librepods.utils.IslandType
-import me.kavishdevar.librepods.utils.IslandWindow
 import me.kavishdevar.librepods.utils.MediaController
-import me.kavishdevar.librepods.utils.PopupWindow
 import me.kavishdevar.librepods.utils.SystemApisUtils
 import me.kavishdevar.librepods.utils.SystemApisUtils.DEVICE_TYPE_UNTETHERED_HEADSET
 import me.kavishdevar.librepods.utils.SystemApisUtils.METADATA_COMPANION_APP
@@ -121,8 +124,6 @@ import me.kavishdevar.librepods.utils.SystemApisUtils.METADATA_UNTETHERED_RIGHT_
 import me.kavishdevar.librepods.utils.SystemApisUtils.METADATA_UNTETHERED_RIGHT_CHARGING
 import me.kavishdevar.librepods.utils.SystemApisUtils.METADATA_UNTETHERED_RIGHT_ICON
 import me.kavishdevar.librepods.utils.SystemApisUtils.METADATA_UNTETHERED_RIGHT_LOW_BATTERY_THRESHOLD
-import me.kavishdevar.librepods.widgets.BatteryWidget
-import me.kavishdevar.librepods.widgets.NoiseControlWidget
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.io.encoding.Base64
@@ -1060,8 +1061,6 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                         version1 = config.airpodsVersion1,
                         version2 = config.airpodsVersion2,
                         version3 = config.airpodsVersion3,
-                        aacpManager = aacpManager,
-                        attManager = attManager
                     )
                 }
                 sendBroadcast(
@@ -1765,8 +1764,10 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         }
     }
 
+    @Suppress("KotlinUnreachableCode")
     @OptIn(ExperimentalMaterial3Api::class)
     private fun showSocketConnectionFailureNotification(errorMessage: String) {
+        return // something causes too many notifications. turning off for now
         if (BuildConfig.FLAVOR != "xposed") {
             Log.w(
                 TAG,
@@ -1788,7 +1789,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             .setSmallIcon(R.drawable.airpods).setContentTitle("AirPods Connection Issue")
             .setContentText("Unable to connect to AirPods over L2CAP").setStyle(
                 NotificationCompat.BigTextStyle().bigText(
-                    "Your AirPods are connected via Bluetooth, but LibrePods couldn't connect to AirPods using L2CAP. " + "Error: $errorMessage"
+                    "Your AirPods are connected via Bluetooth, but LibrePods couldn't connect to AirPods using L2CAP. Error: $errorMessage"
                 )
             ).setContentIntent(pendingIntent).setCategory(Notification.CATEGORY_ERROR)
             .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build()
@@ -2178,7 +2179,11 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     fun processHeadTrackingData(data: ByteArray) {
         val horizontal = ByteBuffer.wrap(data, 51, 2).order(ByteOrder.LITTLE_ENDIAN).short.toInt()
         val vertical = ByteBuffer.wrap(data, 53, 2).order(ByteOrder.LITTLE_ENDIAN).short.toInt()
-        gestureDetector?.processHeadOrientation(horizontal, vertical)
+        try {
+            gestureDetector?.processHeadOrientation(horizontal, vertical)
+        } catch (e: Exception) {
+            Log.w(TAG, "gesture detector on ${data.toHexString()}: ${e.message}")
+        }
     }
 
     private lateinit var connectionReceiver: BroadcastReceiver
@@ -2666,8 +2671,8 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                         this@AirPodsService.device = device
 
                         BluetoothConnectionManager.setCurrentConnection(socket, device)
-
-                        if (BuildConfig.FLAVOR == "xposed") {
+                        val xposedRemotePref = XposedRemotePrefProvider.create()
+                        if (xposedRemotePref.getBoolean("vendor_id_hook", false)) {
                             attManager = ATTManager(adapter, device)
                             attManager!!.connect()
                         }
@@ -2687,8 +2692,6 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                                     version1 = config.airpodsVersion1,
                                     version2 = config.airpodsVersion2,
                                     version3 = config.airpodsVersion3,
-                                    aacpManager = aacpManager,
-                                    attManager = attManager
                                 )
                             }
                         }

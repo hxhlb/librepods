@@ -296,7 +296,7 @@ object SystemApisUtils {
             )
             method.invoke(device, key, value) as Boolean
         } catch (e: Exception) {
-            Log.e("SystemApisUtils", "Failed to set metadata for key $key", e)
+            Log.w("SystemApisUtils", "Failed to set metadata for key $key: ${e.message}")
             false
         }
     }

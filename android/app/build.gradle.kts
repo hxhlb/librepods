@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
@@ -27,10 +26,10 @@ android {
 
     defaultConfig {
         applicationId = "me.kavishdevar.librepods"
-        minSdk = 36
+        minSdk = 33
         targetSdk = 37
-        versionCode = 21
-        versionName = "0.2.0-beta.1"
+        versionCode = 27
+        versionName = "0.2.0"
     }
     buildTypes {
         release {
@@ -45,25 +44,25 @@ android {
                     arguments += "-DCMAKE_BUILD_TYPE=Release"
                 }
             }
+            buildConfigField("Boolean", "PLAY_BUILD", "false")
             signingConfig = signingConfigs.getByName("release")
         }
         debug {
+            buildConfigField("Boolean", "PLAY_BUILD", "false")
             signingConfig = signingConfigs.getByName("release")
         }
         create("playRelease") {
             initWith(getByName("release"))
-            versionNameSuffix = "-play"
+            buildConfigField("Boolean", "PLAY_BUILD", "true")
+        }
+        create("playDebug") {
+            initWith(getByName("debug"))
             buildConfigField("Boolean", "PLAY_BUILD", "true")
         }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
-    }
-    kotlin {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_21)
-        }
     }
     buildFeatures {
         compose = true
@@ -105,7 +104,7 @@ android {
                     arguments += "-DIS_XPOSED=ON"
                 }
             }
-            applicationIdSuffix = ".xposed"
+            versionNameSuffix = "-xposed"
         }
     }
 }
@@ -134,9 +133,10 @@ dependencies {
     implementation(libs.aboutlibraries)
     implementation(libs.aboutlibraries.compose.m3)
     implementation(libs.backdrop)
-    implementation(libs.hilt)
+//    implementation(libs.hilt)
 //    implementation(libs.hilt.compiler)
-    add("xposedCompileOnly", files("libs/libxposed-api-100.aar"))
+    add("xposedCompileOnly", libs.libxposed.api)
+    add("xposedImplementation", libs.libxposed.service)
     add("playReleaseImplementation", libs.billing)
 }
 

@@ -18,14 +18,14 @@
 
 package me.kavishdevar.librepods.data
 
-import me.kavishdevar.librepods.utils.AACPManager
-import me.kavishdevar.librepods.utils.AACPManager.Companion.ControlCommandIdentifiers
+import me.kavishdevar.librepods.bluetooth.AACPManager
+import me.kavishdevar.librepods.bluetooth.AACPManager.Companion.ControlCommandIdentifiers
 
 class ControlCommandRepository(
     private val aacpManager: AACPManager
 ) {
     fun getValue(
-        identifier: AACPManager.Companion.ControlCommandIdentifiers
+        identifier: ControlCommandIdentifiers
     ): ByteArray? {
         return aacpManager.controlCommandStatusList
             .find { it.identifier == identifier }
@@ -33,7 +33,7 @@ class ControlCommandRepository(
     }
 
     fun setValue(
-        id: AACPManager.Companion.ControlCommandIdentifiers,
+        id: ControlCommandIdentifiers,
         value: ByteArray
     ) {
         aacpManager.sendControlCommand(id.value, value)
@@ -41,7 +41,7 @@ class ControlCommandRepository(
 
 
     fun observe(
-        identifier: AACPManager.Companion.ControlCommandIdentifiers,
+        identifier: ControlCommandIdentifiers,
         onChange: (ByteArray) -> Unit
     ): AACPManager.ControlCommandListener {
 
@@ -56,7 +56,7 @@ class ControlCommandRepository(
     }
 
     fun remove(
-        identifier: AACPManager.Companion.ControlCommandIdentifiers,
+        identifier: ControlCommandIdentifiers,
         listener: AACPManager.ControlCommandListener
     ) {
         aacpManager.unregisterControlCommandListener(identifier, listener)

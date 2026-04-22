@@ -27,7 +27,7 @@ object BillingProviderFactory {
         return if (BuildConfig.PLAY_BUILD) {
             PlayBillingProvider(context)
         } else {
-            FOSSBillingProvider()
+            FOSSBillingProvider(context)
         }
     }
 }

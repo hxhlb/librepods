@@ -18,32 +18,27 @@
 
 package me.kavishdevar.librepods.utils
 
+import android.content.SharedPreferences
 import android.os.Build
 import me.kavishdevar.librepods.BuildConfig
 
-fun isSupported(): Boolean {
-    if (BuildConfig.PLAY_BUILD) {
-        val isPixel = Build.MANUFACTURER.lowercase() == "google"
-        val isOppoOrOnePlus = Build.MANUFACTURER.lowercase() in listOf("oneplus", "oppo")
+fun isSupported(sharedPreferences: SharedPreferences): Boolean {
+    val isPixel = Build.MANUFACTURER.lowercase() == "google"
+    val isOppoOrOnePlus = Build.MANUFACTURER.lowercase() in listOf("oneplus", "oppo")
 
-        if (isPixel) {
-            when (Build.VERSION.SDK_INT) {
-                36 -> {
-                    return Build.ID == "CP1A.260305.018" || Build.ID == "CP1A.260405.005"
-                }
-
-                37 -> {
-                    return true
-                }
+    if (isPixel) {
+        when (Build.VERSION.SDK_INT) {
+            36 -> {
+                return Build.ID == "CP1A.260305.018" || Build.ID == "CP1A.260405.005"
             }
-        } else if (isOppoOrOnePlus) {
-            return true
+
+            37 -> {
+                return true
+            }
         }
+    } else if (isOppoOrOnePlus) {
+        return true
     }
-    return true
+    return if (BuildConfig.FLAVOR == "xposed") true
+    else sharedPreferences.getBoolean("bypass_device_check", false)
 }
-
-
-/*fun isSupported(): Boolean {
-    return true
-}*/

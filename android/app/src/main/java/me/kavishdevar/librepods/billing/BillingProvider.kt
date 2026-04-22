@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 interface BillingProvider {
     val isPremium: StateFlow<Boolean>
-
+    val price: StateFlow<String>
     fun purchase(activity: Activity)
+    fun queryPurchases()
 }
